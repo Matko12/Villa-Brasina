@@ -13,6 +13,7 @@
     <style>
         /* Auth button styles */
         .auth-container{display:flex;gap:8px;align-items:center}
+        header .auth-container{position:absolute;left:18px;top:8px;z-index:9999;background:transparent;padding:6px;border-radius:8px;border:none}
         .auth-btn{padding:8px 12px;border-radius:8px;border:1px solid #000;background:#fff;cursor:pointer;font-weight:600}
         .auth-btn.primary{background:var(--accent);color:#fff;border-color:#065a78}
         .auth-btn.admin{background:#ffd;color:#000}
@@ -83,6 +84,12 @@
 <body>
     <div class="wrap">
         <header>
+            <div id="inlineSignInContainer" class="auth-container" style="position:absolute;left:18px;top:8px;z-index:20">
+                <div id="inlineSignIn"></div>
+                <button id="fallbackSignInBtn" class="auth-btn" type="button">Sign in</button>
+                <button id="adminAccessBtn" class="auth-btn admin" type="button" style="display:none">Admin</button>
+                <button id="inlineSignOut" class="auth-btn primary" type="button" style="display:none">Sign out</button>
+            </div>
             <h1>Villa Brašina</h1>
             <p class="lead">Cozy apartments in Mlini, Dubrovnik — private balconies, and short walk to the beach.</p>
             <!-- badge image (place your image file as 'villa-badge.png' in the same folder) -->
@@ -94,12 +101,7 @@
         <main>
             <div class="grid">
                 <div>
-                    <div id="inlineSignInContainer" class="auth-container" style="margin-bottom:12px">
-                        <div id="inlineSignIn"></div>
-                        <button id="fallbackSignInBtn" class="auth-btn" type="button">Sign in</button>
-                        <button id="adminAccessBtn" class="auth-btn admin" type="button" style="display:none">Admin</button>
-                        <button id="inlineSignOut" class="auth-btn primary" type="button" style="display:none">Sign out</button>
-                    </div>
+                    
                     <section class="card">
                         <h2>About Villa Brašina</h2>
                         <p>Villa Brašina is a family-run property located in the seaside village of Mlini, just a short drive from Dubrovnik Old Town. Guests enjoy bright apartments with modern amenities, private balconies, and quick access to local beaches and restaurants.</p>
@@ -133,6 +135,46 @@
                             </ul>
                         </div>
                     </section>
+
+                    <section id="reviewsSection" class="card" style="margin-top:12px;border:2px solid #000">
+                        <h3 style="margin-top:0">Guest Reviews</h3>
+                        <div style="font-weight:700;color:#0a7db1;margin-bottom:8px">Average: <span id="avgStars">0</span> / 5</div>
+                        <div id="latestReview" style="margin-bottom:8px;font-size:0.9rem;color:#666">
+                            <p style="margin:0">No reviews yet.</p>
+                        </div>
+                        <button id="showMoreReviewsBtn" class="big-btn" style="background:#444;padding:6px 10px;margin-bottom:8px">Show all reviews</button>
+
+                        <div id="leaveReviewBox" style="border-top:1px solid #eee;padding-top:8px;display:none">
+                            <h4 style="margin:0 0 6px">Leave a review</h4>
+                            <div style="margin-bottom:12px">
+                                <p id="reviewNotice" style="color:#666;margin:0 0 6px;font-size:0.85rem">Room <span id="reviewRoomDisplay"></span></p>
+                                <div style="display:flex;align-items:center;gap:8px">
+                                    <label style="font-size:0.9rem">Rating:</label>
+                                    <div id="reviewStars" style="font-size:1.8rem;letter-spacing:3px;cursor:pointer;user-select:none;display:flex">
+                                        <span data-value="1" style="color:#ddd">★</span><span data-value="2" style="color:#ddd">★</span><span data-value="3" style="color:#ddd">★</span><span data-value="4" style="color:#ddd">★</span><span data-value="5" style="color:#ddd">★</span>
+                                    </div>
+                                    <input type="hidden" id="reviewRatingValue" value="5" style="display:none">
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom:6px">
+                                <label for="reviewText" style="font-size:0.9rem">Review</label>
+                                <textarea id="reviewText" rows="2" style="width:100%;padding:6px;font-size:0.9rem;border-radius:4px;border:1px solid #ccc"></textarea>
+                            </div>
+
+                            <div style="margin-bottom:6px">
+                                <label for="reviewImages" style="font-size:0.9rem">Photos (up to 3)</label>
+                                <input id="reviewImages" type="file" accept="image/*" multiple style="display:block;font-size:0.85rem">
+                            </div>
+
+                            <div style="display:flex;gap:6px">
+                                <button id="submitReviewBtn" class="big-btn" style="background:#0a7db1;padding:6px 10px;font-size:0.9rem">Submit</button>
+                                <button id="refreshReviewsBtn" class="big-btn" style="background:#666;padding:6px 10px;font-size:0.9rem">Refresh</button>
+                                <div id="reviewStatus" role="status" aria-live="polite" style="color:#064;align-self:center;font-size:0.9rem"></div>
+                            </div>
+                        </div>
+                    </section>
+
                 </div>
 
                 <aside>
@@ -166,8 +208,7 @@
                                     <option value="11" data-max-guests="3" data-price="55">11 (max guests 3) — €55/night</option>
                                     <option value="12" data-max-guests="6" data-price="80">12 (max guests 6) — €80/night</option>
                                     <option value="13" data-max-guests="3" data-price="55">13 (max guests 3) — €55/night</option>
-                                    <option value="14" data-max-guests="8" data-price="80">14 (max guests 8) — €80/night</option>
-                                    <option value="15" data-max-guests="3" data-price="55">15 (max guests 3) — €55/night</option>
+                                    
                                 </select>
 
                             <div id="dateFields" style="display:none">
@@ -326,6 +367,18 @@
             saveProfile(profile);
             applyProfile(profile);
             updateAuthUI(profile);
+            
+            // Load and cache bookings for this email after sign-in
+            (async () => {
+                try{
+                    const bookings = await loadBookings();
+                    const userBookings = (Array.isArray(bookings) ? bookings : []).filter(b => String(b.email||'').toLowerCase() === String(email).toLowerCase());
+                    if(userBookings && userBookings.length > 0){
+                        try{ localStorage.setItem('vb_user_bookings_' + String(email).toLowerCase(), JSON.stringify(userBookings)); }catch(e){}
+                        console.log('Cached ' + userBookings.length + ' bookings for ' + email);
+                    }
+                }catch(e){ console.log('Could not pre-load bookings on sign-in:', e); }
+            })();
         }
 
         function init(){
@@ -657,16 +710,25 @@
         const GOOGLE_SHEET_ID = ''; // Leave empty to use localStorage only
         const GOOGLE_APPS_SCRIPT_URL = ''; // If using Google Apps Script as backend
         
-        // ===== BACKEND API CONFIGURATION =====
-        // For cross-device syncing, use a backend server.
-        // Options:
-        // 1. Local Node.js: http://localhost:3000 (run: node backend.js)
-        // 2. Deployed server: https://your-villa-api.herokuapp.com or similar
-        // 3. Firebase: https://your-project.cloudfunctions.net/bookings
-        // 4. Google Apps Script: https://script.google.com/macros/d/.../usercontent
+        // ===== BACKEND API CONFIGURATION FOR CROSS-DEVICE SYNCING & PHOTO LOADING =====
+        // 
+        // For anyone to access this from any device with synced data and photos:
+        // Read DEPLOYMENT_GUIDE.md for step-by-step instructions
         //
-        // Leave empty to use localStorage only (bookings won't sync across devices)
-    const ACTIVE_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyooPSSSEdTmouKNv6X1R5NtypwFfTcmCGGohyivMRWrbX1e03tRGs4k2qkGt6FL7uw/exec';
+        // CHANGE THIS TO YOUR DEPLOYED BACKEND URL:
+        // 
+        // Local Network (within WiFi):
+        //   const ACTIVE_BACKEND_URL = 'http://192.168.1.100:3000'; // Replace IP with YOUR computer IP (run: ipconfig)
+        //
+        // Cloud Deployment (accessible worldwide):
+        //   Railway: 'https://your-app.railway.app'
+        //   Heroku:  'https://your-app-name.herokuapp.com'
+        //   Render:  'https://your-app.onrender.com'
+        //
+        // Local Testing Only (won't sync across devices, photos may not load on mobile):
+        //   ''  (empty string = use localStorage only)
+        //
+    const ACTIVE_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbw-gpkztHiwfdT2WoxHAHz9ocybZ73Yv2U5due4aiXCN3f8onVtMYFdgxSrLiCs3ss/exec';
         // Quick backend health check (non-blocking). Logs result to console to help debugging CORS/deploy issues.
         if(ACTIVE_BACKEND_URL){
             console.log('ACTIVE_BACKEND_URL:', ACTIVE_BACKEND_URL);
@@ -770,8 +832,13 @@
                                 bookings = [];
                             }
                         }
-                        // Cache in localStorage as backup
-                        try{ localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings)); }catch(e){}
+                        // Cache in localStorage as backup, but don't overwrite existing data with empty results
+                        if(Array.isArray(bookings) && bookings.length > 0){
+                            try{ localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings)); }catch(e){}
+                        } else if(bookings.length === 0){
+                            // Backend returned empty - don't overwrite localStorage, use existing cache instead
+                            try{ const rawLocal = localStorage.getItem(BOOKINGS_KEY); let local = rawLocal ? JSON.parse(rawLocal) : []; if(Array.isArray(local) && local.length > 0) return local; }catch(e){}
+                        }
                         return bookings;
                     } else {
                         console.log('Backend HTTP error:', response.status);
@@ -1174,11 +1241,9 @@
                 8: ['preuzmi.jpg','167774122.jpg','163596176.webp'],
                 9: ['167774122.jpg','163596176.webp','preuzmi.jpg'],
                 10: ['163596176.webp','167774122.jpg','preuzmi.jpg'],
-                11: ['preuzmi.jpg','163596176.webp','167774122.jpg'],
-                12: ['167774122.jpg','preuzmi.jpg','163596176.webp'],
+                11: ['163596029.jpg','163613119.jpg','preuzmi.jpg'],
+                12: ['167774122.jpg','163596176.webp','preuzmi.jpg'],
                 13: ['163596176.webp','167774122.jpg','preuzmi.jpg'],
-                14: ['preuzmi.jpg','167774122.jpg','163596176.webp'],
-                15: ['167774122.jpg','163596176.webp','preuzmi.jpg']
             };
 
             // runtime storage for user-uploaded previews (dataURLs) and temp buffer
@@ -1590,6 +1655,243 @@
                     }
                 }catch(err){ console.warn('storage event handler error', err); }
             });
+
+            // ===== Reviews: load, render, post, delete =====
+            const REVIEWS_KEY = 'vb_reviews';
+
+            function loadReviewsLocal(){
+                try{ const raw = localStorage.getItem(REVIEWS_KEY); let arr = raw ? JSON.parse(raw) : []; if(!Array.isArray(arr)) arr = []; return arr; }catch(e){ return []; }
+            }
+
+            async function loadReviews(forceBackend){
+                // Try backend first (always if forceBackend, otherwise check ACTIVE_BACKEND_URL)
+                if(ACTIVE_BACKEND_URL){
+                    try{
+                        const url = ACTIVE_BACKEND_URL.includes('/exec') ? (ACTIVE_BACKEND_URL + (ACTIVE_BACKEND_URL.includes('?') ? '&' : '?') + 'action=getReviews&t=' + Date.now()) : (ACTIVE_BACKEND_URL.replace(/\/$/,'') + '/api/reviews?t=' + Date.now());
+                        const res = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                        if(res.ok){ 
+                            const body = await res.json(); 
+                            if(Array.isArray(body)) { 
+                                // Only cache non-empty results to avoid losing data
+                                if(body.length > 0){
+                                    try{ localStorage.setItem(REVIEWS_KEY, JSON.stringify(body)); }catch(e){}
+                                    return body;
+                                } else {
+                                    // Backend returned empty - use local cache instead
+                                    const local = loadReviewsLocal();
+                                    return local.length > 0 ? local : body;
+                                }
+                            } 
+                        }
+                    }catch(e){ console.warn('loadReviews backend failed:', e); }
+                }
+                // Always fall back to local if backend fails
+                return loadReviewsLocal();
+            }
+
+            async function saveReviewRemote(review){
+                if(ACTIVE_BACKEND_URL){
+                    try{
+                        const url = ACTIVE_BACKEND_URL.includes('/exec') ? ACTIVE_BACKEND_URL : (ACTIVE_BACKEND_URL.replace(/\/$/,'') + '/api/reviews');
+                        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(review) });
+                        if(res.ok){ const saved = await res.json(); try{ const all = await loadReviews(); await trySaveReviewsLocal(all); }catch(e){} return saved; }
+                    }catch(e){ console.warn('saveReviewRemote failed', e); }
+                }
+                // fallback local
+                const local = loadReviewsLocal();
+                local.push(review);
+                try{ localStorage.setItem(REVIEWS_KEY, JSON.stringify(local)); }catch(e){}
+                return review;
+            }
+
+            async function trySaveReviewsLocal(arr){ try{ localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)); }catch(e){} }
+
+            function renderStars(n){ n = Number(n)||0; return '★'.repeat(Math.round(n)) + '☆'.repeat(5-Math.round(n)); }
+
+            async function renderReviews(forceBackend){
+                const listEl = document.getElementById('latestReview');
+                const avgEl = document.getElementById('avgStars');
+                if(!listEl) return;
+                const reviews = await loadReviews(forceBackend);
+                if(!Array.isArray(reviews) || reviews.length === 0){ listEl.innerHTML = '<p style="color:#666">No reviews yet.</p>'; if(avgEl) avgEl.textContent = '0'; return; }
+                // compute average
+                const avg = reviews.reduce((s,r)=>s + (Number(r.rating)||0),0) / reviews.length;
+                if(avgEl) avgEl.textContent = (Math.round(avg*10)/10).toString();
+
+                // show only latest review on main page
+                const sorted = reviews.slice().sort((a,b)=> new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                const latest = sorted[sorted.length - 1];
+
+                const ownerEmail = (window.OWNER_EMAIL||'').toLowerCase();
+                const profileRaw = localStorage.getItem('vb_user');
+                let profileEmail = '';
+                try{ const p = profileRaw ? JSON.parse(profileRaw) : null; profileEmail = p && p.email ? String(p.email).toLowerCase() : ''; }catch(e){}
+                const isAdminView = profileEmail && ownerEmail && profileEmail === ownerEmail;
+
+                const rating = Number(latest.rating)||0;
+                const text = (latest.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const name = (latest.name||'Guest').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const room = latest.room || '';
+                const id = latest.id || '';
+                const delBtn = isAdminView ? `<button class="review-delete" data-id="${id}" style="margin-left:8px;padding:6px;border-radius:6px;background:#fdd;border:1px solid #c00;color:#900">Delete</button>` : '';
+
+                // images
+                let imgsHtml = '';
+                if(Array.isArray(latest.images) && latest.images.length){
+                    imgsHtml = '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">' + latest.images.map(src=>`<img src="${src}" alt="review photo" style="max-width:120px;max-height:90px;border:1px solid #ddd;border-radius:6px">`).join('') + '</div>';
+                }
+
+                listEl.innerHTML = `<div style="border:1px solid #eee;padding:8px;border-radius:6px;margin-bottom:8px"><div style="font-size:0.9rem;color:#222"><strong>${name}</strong> <span style="color:#f5a623">${renderStars(rating)}</span> — Room ${room}</div><div style="color:#666;margin-top:6px;font-size:0.85rem"><small style=\"color:#999\">${(new Date(latest.createdAt||'')).toISOString().slice(0,10)}</small></div><p style="margin:8px 0 0;color:#222">${text}</p>${imgsHtml}${delBtn}</div>`;
+            }
+
+            // Store selected room from booking form; sync review form visibility
+            let selectedReviewRoom = '';
+            
+            if($('c_room')) {
+                $('c_room').addEventListener('change', async function(){
+                    selectedReviewRoom = this.value || '';
+                    const leaveBox = document.getElementById('leaveReviewBox');
+                    const roomDisplay = document.getElementById('reviewRoomDisplay');
+                    
+                    if(selectedReviewRoom) {
+                        if(leaveBox) leaveBox.style.display = 'block';
+                        if(roomDisplay) roomDisplay.textContent = selectedReviewRoom;
+                    } else {
+                        if(leaveBox) leaveBox.style.display = 'none';
+                        if(roomDisplay) roomDisplay.textContent = '';
+                    }
+                });
+            }
+
+            // Handle refresh button - force reload from backend
+            document.getElementById('refreshReviewsBtn') && document.getElementById('refreshReviewsBtn').addEventListener('click', async function(){ 
+                document.getElementById('reviewStatus').textContent = 'Refreshing...'; 
+                await renderReviews(true); 
+                document.getElementById('reviewStatus').textContent = ''; 
+            });
+
+            // Handle star rating clicks
+            if(document.getElementById('reviewStars')) {
+                document.getElementById('reviewStars').addEventListener('click', function(e){
+                    const star = e.target.closest('span[data-value]');
+                    if(!star) return;
+                    const value = star.getAttribute('data-value');
+                    document.getElementById('reviewRatingValue').value = value;
+                    // Update star colors
+                    const allStars = this.querySelectorAll('span[data-value]');
+                    allStars.forEach(s => {
+                        if(Number(s.getAttribute('data-value')) <= Number(value)) {
+                            s.style.color = '#f5a623';
+                        } else {
+                            s.style.color = '#ddd';
+                        }
+                    });
+                });
+                // Set initial 5 stars as gold
+                const allStars = document.getElementById('reviewStars').querySelectorAll('span[data-value]');
+                allStars.forEach(s => { s.style.color = '#f5a623'; });
+            }
+
+            // helper to read selected image files as data URLs (max 3)
+            function readFilesAsDataUrls(fileList){
+                const files = Array.from(fileList || []).slice(0,3);
+                return Promise.all(files.map(f => new Promise((res, rej) => {
+                    const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(null); r.readAsDataURL(f);
+                })));
+            }
+
+            document.getElementById('showMoreReviewsBtn') && document.getElementById('showMoreReviewsBtn').addEventListener('click', function(){
+                window.open('admin_guest_info.html', '_blank');
+            });
+
+            document.getElementById('submitReviewBtn') && document.getElementById('submitReviewBtn').addEventListener('click', async function(){
+                try{
+                    const status = document.getElementById('reviewStatus'); if(status) status.textContent = '';
+                    let profile = null; try{ profile = JSON.parse(localStorage.getItem('vb_user')||'null'); }catch(e){ profile = null; }
+                    if(!profile || !profile.email){ if(status) status.textContent = 'Please sign in before leaving a review.'; return; }
+                    if(!selectedReviewRoom){ if(status) status.textContent = 'Please select a room in the booking form.'; return; }
+                    
+                    // Verify guest has made a booking - try backend first, then fall back to local cache
+                    const email = String(profile.email).toLowerCase();
+                    let allBookings = await loadBookings();
+                    // If backend loadBookings returns empty, also try loadBookingsLocal() as additional fallback
+                    if(!Array.isArray(allBookings) || allBookings.length === 0){
+                        allBookings = loadBookingsLocal();
+                    }
+                    const userBookings = (Array.isArray(allBookings) ? allBookings : []).filter(b => String(b.email||'').toLowerCase() === email);
+                    if(!userBookings || userBookings.length === 0){ 
+                        // Check if they have saved bookings in their profile
+                        let profileBookings = [];
+                        try{ const saved = JSON.parse(localStorage.getItem('vb_user_bookings_' + email) || 'null'); if(Array.isArray(saved)) profileBookings = saved; }catch(e){}
+                        if(!profileBookings || profileBookings.length === 0){
+                            if(status) status.textContent = 'Only guests with a booking can leave reviews.';
+                            return;
+                        }
+                    }
+                    
+                    // Cache last room booked for this email
+                    if(userBookings && userBookings.length > 0){
+                        try{ localStorage.setItem('vb_user_bookings_' + email, JSON.stringify(userBookings)); }catch(e){}
+                    }
+                    
+                    const rating = Number(document.getElementById('reviewRatingValue').value||5);
+                    const text = document.getElementById('reviewText').value || '';
+                    const imageInput = document.getElementById('reviewImages');
+                    let images = [];
+                    if(imageInput && imageInput.files && imageInput.files.length){
+                        try{ images = (await readFilesAsDataUrls(imageInput.files)).filter(Boolean); }catch(e){ images = []; }
+                    }
+                    const review = { id: 'REV-' + Date.now(), rating, text, room: selectedReviewRoom, name: profile.name || profile.email || 'Guest', email: profile.email || '', images: images, createdAt: new Date().toISOString() };
+                    if(status) status.textContent = 'Submitting review...';
+                    await saveReviewRemote(review);
+                    if(status) status.textContent = '✓ Review submitted.';
+                    document.getElementById('reviewText').value = '';
+                    if(imageInput) imageInput.value = '';
+                    // Add small delay to ensure backend has saved, then force fresh load
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await renderReviews(true);
+                }catch(e){ console.error('submit review err', e); const status = document.getElementById('reviewStatus'); if(status) status.textContent = 'Failed to submit review.'; }
+            });
+            // Delegate delete clicks for admin
+            document.addEventListener('click', async function(ev){
+                const btn = ev.target.closest && ev.target.closest('.review-delete');
+                if(!btn) return;
+                
+                // Verify user is signed in and is admin
+                let profile = null;
+                try{ profile = JSON.parse(localStorage.getItem('vb_user')||'null'); }catch(e){ profile = null; }
+                if(!profile || !profile.email){ alert('You must sign in to delete reviews.'); return; }
+                
+                const ownerEmail = (window.OWNER_EMAIL||'').toLowerCase();
+                const profileEmail = String(profile.email).toLowerCase();
+                if(!ownerEmail || profileEmail !== ownerEmail){ alert('Only the admin can delete reviews.'); return; }
+                
+                const id = btn.getAttribute('data-id');
+                if(!id) return; 
+                if(!confirm('Delete review?')) return;
+                
+                // Try backend delete
+                try{
+                    if(ACTIVE_BACKEND_URL){
+                        const url = ACTIVE_BACKEND_URL.includes('/exec') ? (ACTIVE_BACKEND_URL + (ACTIVE_BACKEND_URL.includes('?') ? '&' : '?') + 'action=deleteReview&id=' + encodeURIComponent(id)) : (ACTIVE_BACKEND_URL.replace(/\/$/,'') + '/api/reviews/' + encodeURIComponent(id));
+                        const headers = {};
+                        const adminKey = sessionStorage.getItem('vb_admin_key') || '';
+                        if(adminKey) headers['x-admin-key'] = adminKey;
+                        const res = await fetch(url, { method: 'DELETE', headers });
+                        if(res.ok){ await renderReviews(); alert('Review deleted'); return; }
+                    }
+                }catch(e){ console.warn('delete review backend failed', e); }
+                // fallback local delete (only for verified admin)
+                try{
+                    const arr = loadReviewsLocal().filter(r => r.id !== id);
+                    try{ localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)); }catch(e){}
+                    await renderReviews();
+                    alert('Review deleted (local)');
+                }catch(e){ alert('Delete failed'); }
+            });
+
+            // initial populate
+            try{ renderReviews(); }catch(e){}
 
     })();
     </script>
